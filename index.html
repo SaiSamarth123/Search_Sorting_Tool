@@ -1,16 +1,58 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-    <title>How to run JavaScript file in browser</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Searching Visualization Tool</title>
+  <style>
+    canvas {
+      display: block;
+      margin: 0 auto;
+      border: 1px solid #000;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .controls > * {
+      margin: 0.5rem;
+    }
+  </style>
 </head>
-
 <body>
-    <button id="startBtn">Set Start Point</button>
-    <button id="endBtn">Set End Point</button>
-    <button id="dfsBtn">DFS</button>
-    <h1>Visualization tool</h1>
-    <script src="./canvas.js"></script>
+  <div class="controls">
+    <button id="start">Set Start</button>
+    <button id="end">Set End</button>
+    <button id="wall">Place Walls</button>
+    <button id="run">Run Algorithm</button>
+    <button id="clear">Clear Board</button>
+    <button id="clear-walls">Clear Walls</button>
+    <button id="clear-path">Clear Path</button>
+    <select id="algorithm">
+      <option value="dfs">Depth First Search</option>
+      <!-- Add other search algorithms here -->
+    </select>
+    <select id="maze">
+      <option value="blank">Blank</option>
+      <option value="random">Random Walls</option>
+      <!-- Add other maze patterns here -->
+    </select>
+    <select id="speed">
+      <option value="fast">Fast</option>
+      <option value="medium">Medium</option>
+      <option value="slow">Slow</option>
+    </select>
+  </div>
+  <canvas id="canvas" width="800" height="600"></canvas>
+   <script src="./canvas.js"></script>
 </body>
-
 </html>
+
+
+
+
+
+
+

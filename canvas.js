@@ -1,208 +1,195 @@
-// create canvas
-const canvas = document.createElement('canvas');
-const ctx = canvas.getContext('2d');
-document.body.appendChild(canvas);
+const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const gridSize = 20;
+    const gridWidth = Math.floor(canvas.width / gridSize);
+    const gridHeight = Math.floor(canvas.height / gridSize);
+    const grid = new Array(gridWidth).fill(null).map(() => new Array(gridHeight).fill(0));
+    let mode = 'start';
+    let startPoint = null;
+    let endPoint = null;
 
-// define grid size and cell size
-const gridSize = {
-    x: 300,
-    y: 300
-};
-const cellSize = {
-    x: 25,
-    y: 25
-};
-
-// define colors
-const colors = {
-    open: '#ffffff',
-    wall: '#333333',
-    start: '#00ff00',
-    end: '#ff0000',
-    visited: '#b8b8b8',
-    path: '#00bfff'
-};
-
-// create grid
-let grid = [];
-
-// start and end points
-let startPoint = null;
-let endPoint = null;
-
-// start button and initializing the start point
-document.getElementById('startBtn').addEventListener('click', function() {
-  canvas.addEventListener('mousedown', function(event) {
-    const x = Math.floor(event.offsetX / cellSize.x);
-    const y = Math.floor(event.offsetY / cellSize.y);
-    start = { x, y };
-    fillCell(x, y, colors.start);
-  });
-});
-
-//
-document.getElementById('endBtn').addEventListener('click', function() {
-  canvas.addEventListener('mousedown', function(event) {
-    const x = Math.floor(event.offsetX / cellSize.x);
-    const y = Math.floor(event.offsetY / cellSize.y);
-    end = { x, y };
-    fillCell(x, y, colors.end);
-  });
-});
-
-
-// creating the grid
-function createGrid() {
-    for (let i = 0; i < gridSize.x; i++) {
-        grid[i] = [];
-        for (let j = 0; j < gridSize.y; j++) {
-            grid[i][j] = 0;
+    function drawGrid() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#000';
+      for (let x = 0; x < gridWidth; x++) {
+        for (let y = 0; y < gridHeight; y++) {
+          if (grid[x][y] === 1) {
+            ctx.fillStyle = 'black';
+          } else if (grid[x][y] === 2) {
+            ctx.fillStyle = 'green';
+          } else if (grid[x][y] === 3) {
+            ctx.fillStyle = 'red';
+          } else if (grid[x][y] === 4) {
+            ctx.fillStyle = 'blue';
+          } else if (grid[x][y] === 5) {
+            ctx.fillStyle = 'yellow';
+          } else {
+            ctx.fillStyle = 'white';
+          }
+          ctx.fillRect(x * gridSize, y * gridSize, gridSize - 1, gridSize - 1);
+          ctx.strokeRect(x * gridSize, y * gridSize, gridSize - 1, gridSize - 1);
         }
+      }
     }
-}
 
-// draw grid
-function drawGrid() {
-    ctx.beginPath();
-    for (let i = 0; i <= gridSize.x; i++) {
-        ctx.moveTo(i * cellSize.x, 0);
-        ctx.lineTo(i * cellSize.x, gridSize.y * cellSize.y);
-    }
-    for (let j = 0; j <= gridSize.y; j++) {
-        ctx.moveTo(0, j * cellSize.y);
-        ctx.lineTo(gridSize.x * cellSize.x, j * cellSize.y);
-    }
-    ctx.stroke();
-
-    // for (let i = 0; i < gridSize.x; i++) {
-    // for (let j = 0; j < gridSize.y; j++) {
-    //   const cell = i + ',' + j;
-    //   if (start && start.x === i && start.y === j) {
-    //     fillCell(i, j, colors.start);
-    //   } else if (end && end.x === i && end.y === j) {
-    //     fillCell(i, j, colors.end);
-    //   } else if (path.has(cell)) {
-    //     fillCell(i, j, colors.path);
-    //   } else if (visited.has(cell)) {
-    //     fillCell(i, j, colors.visited);
-    //   } else if (grid[i][j] === 1) {
-    //     fillCell(i, j, colors.wall);
-    //   } else {
-    //     fillCell(i, j, colors.open);}
-    // }}
-}
-
-// fill cell
-function fillCell(x, y, color) {
-    ctx.fillStyle = color;
-    ctx.fillRect(x * cellSize.x + 1, y * cellSize.y + 1, cellSize.x - 2, cellSize.y - 2);
-}
-
-// handle mouse events
-canvas.addEventListener('mousedown', function (event) {
-    const x = Math.floor(event.offsetX / cellSize.x);
-    const y = Math.floor(event.offsetY / cellSize.y);
-    if (event.button === 0) {
-        // left click: add wall
-        grid[x][y] = 1;
-        fillCell(x, y, colors.wall);
-    } else if (event.button === 2) {
-        // right click: remove wall
-        grid[x][y] = 0;
-        fillCell(x, y, colors.open);
-    }
-});
-
-document.getElementById('dfsBtn').addEventListener('click', function() {
-  const visited = createVisited();
-  const path = dfs(start, end, visited);
-  if (path) {
-    for (const { x, y } of path) {
-      fillCell(x, y, colors.path);
-    }
+    async function dfs(x, y) {
+          if (!isValid(x, y) || grid[x][y] === 1 || grid[x][y] === 4 || grid[x][y] === 5) {
+    return false;
   }
-});
-
-// // returns a visited array to be used by search algorithms
-// function createVisited() {
-//   let visited = [];
-//   for (let i = 0; i < gridSize.x; i++) {
-//     visited[i] = [];
-//     for (let j = 0; j < gridSize.y; j++) {
-//       visited[i][j] = false;
-//     }
-//   }
-//   return visited;
-// }
-
-
-
-// // Search Algorithms
-
-// // DFS
-
-
-
-
-
-// create visited array
-function createVisited() {
-  let visited = new Set();
-  for (let i = 0; i < gridSize.x; i++) {
-    for (let j = 0; j < gridSize.y; j++) {
-      visited.add([i, j].toString());
-    }
-  }
-  return visited;
-}
-
-function dfs(graph, start, end, visited = createVisited()) {
-  visited.add(start.x + ',' + start.y);
-  if (start.x === end.x && start.y === end.y) {
-    // base case: found end point
-    console.log('here');
-    fillCell(start.x, start.y, colors.path);
+  if (x === endPoint.x && y === endPoint.y) {
     return true;
   }
-  for (const neighbor of getNeighbors(start.x, start.y, grid)) {
-    const [nx, ny] = neighbor;
-    if (!visited.has(nx + ',' + ny) && dfs(graph, { x: nx, y: ny }, end, visited)) {
-      // recursive case: found end point through this neighbor
-      console.log('here');
-      fillCell(start.x, start.y, colors.path);
-      visited.add(start.x + ',' + start.y);
-      return true;
-    }
+  grid[x][y] = 5;
+  drawGrid();
+  const speed = document.getElementById('speed').value;
+  const delay = speed === 'fast' ? 50 : speed === 'medium' ? 200 : 500;
+  await new Promise((resolve) => setTimeout(resolve, delay));
+
+  if (
+    (await dfs(x + 1, y)) ||
+    (await dfs(x - 1, y)) ||
+    (await dfs(x, y + 1)) ||
+    (await dfs(x, y - 1))
+  ) {
+    grid[x][y] = 4;
+    drawGrid();
+    return true;
   }
-  // base case: end point not found
-  console.log('here');
-  fillCell(start.x, start.y, colors.visited);
+  grid[x][y] = 0;
+  drawGrid();
   return false;
 }
 
-
-function getNeighbors(x, y, graph) {
-  const neighbors = [];
-  if (x > 0 && graph[x - 1][y] !== 1) {
-    neighbors.push([x - 1, y]);
-  }
-  if (x < gridSize.x - 1 && graph[x + 1][y] !== 1) {
-    neighbors.push([x + 1, y]);
-  }
-  if (y > 0 && graph[x][y - 1] !== 1) {
-    neighbors.push([x, y - 1]);
-  }
-  if (y < gridSize.y - 1 && graph[x][y + 1] !== 1) {
-    neighbors.push([x, y + 1]);
-  }
-  return neighbors;
+function isValid(x, y) {
+  return x >= 0 && x < gridWidth && y >= 0 && y < gridHeight;
 }
 
+function setStart(x, y) {
+  if (startPoint) {
+    grid[startPoint.x][startPoint.y] = 0;
+  }
+  grid[x][y] = 2;
+  startPoint = { x, y };
+}
 
+function setEnd(x, y) {
+  if (endPoint) {
+    grid[endPoint.x][endPoint.y] = 0;
+  }
+  grid[x][y] = 3;
+  endPoint = { x, y };
+}
 
+function setWall(x, y) {
+  if (grid[x][y] === 0) {
+    grid[x][y] = 1;
+  } else if (grid[x][y] === 1) {
+    grid[x][y] = 0;
+  }
+}
 
-// initialize grid
-createGrid();
+function generateRandomMaze() {
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
+      if (Math.random() > 0.7) {
+        setWall(x, y);
+      } else {
+        grid[x][y] = 0;
+      }
+    }
+  }
+  if (startPoint) {
+    setStart(startPoint.x, startPoint.y);
+  }
+  if (endPoint) {
+    setEnd(endPoint.x, endPoint.y);
+  }
+}
 
-// draw grid
+function handleMazeChange() {
+  const mazeSelect = document.getElementById('maze');
+  const selectedMaze = mazeSelect.value;
+  if (selectedMaze === 'random') {
+    generateRandomMaze();
+  } else if (selectedMaze === 'blank') {
+    grid.fill(0);
+  }
+  drawGrid();
+}
+
+function clearBoard() {
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
+      grid[x][y] = 0;
+    }
+  }
+  if (startPoint) {
+    setStart(startPoint.x, startPoint.y);
+  }
+  if (endPoint) {
+    setEnd(endPoint.x, endPoint.y);
+  }
+  drawGrid();
+}
+
+function clearWalls() {
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
+      if (grid[x][y] === 1) {
+        grid[x][y] = 0;
+    }
+}
+}
 drawGrid();
+}
+
+function clearPath() {
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
+      if (grid[x][y] === 4 || grid[x][y] === 5) {
+        grid[x][y] = 0;
+      }
+    }
+  }
+  drawGrid();
+}
+
+document.getElementById('start').addEventListener('click', () => {
+  mode = 'start';
+});
+
+document.getElementById('end').addEventListener('click', () => {
+  mode = 'end';
+});
+
+document.getElementById('wall').addEventListener('click', () => {
+  mode = 'wall';
+});
+
+document.getElementById('run').addEventListener('click', () => {
+  if (startPoint && endPoint) {
+    dfs(startPoint.x, startPoint.y);
+  }
+});
+
+document.getElementById('clear').addEventListener('click', clearBoard);
+document.getElementById('clear-walls').addEventListener('click', clearWalls);
+document.getElementById('clear-path').addEventListener('click', clearPath);
+
+document.getElementById('maze').addEventListener('change', handleMazeChange);
+
+canvas.addEventListener('click', (e) => {
+  const x = Math.floor((e.clientX - canvas.getBoundingClientRect().left) / gridSize);
+  const y = Math.floor((e.clientY - canvas.getBoundingClientRect().top) / gridSize);
+  if (mode === 'start') {
+    setStart(x, y);
+  } else if (mode === 'end') {
+    setEnd(x, y);
+  } else if (mode === 'wall') {
+    setWall(x, y);
+  }
+  drawGrid();
+});
+
+drawGrid();
+
