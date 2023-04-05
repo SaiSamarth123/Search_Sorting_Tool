@@ -5,53 +5,201 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Searching Visualization Tool</title>
   <style>
-    canvas {
+   /* Add this to your stylesheet */
+#popup {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+#popup-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 5px;
+}
+
+#popup-previous,
+#popup-next,
+#close-button {
+  margin-top: 10px;
+  margin-right: 10px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+}
+
+#close-button {
+  background-color: #f44336;
+}
+
+#popup-previous,
+#popup-next {
+  background-color: #2196f3;
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+.analytics {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  font-size: 12px;
+  color: #888;
+}
+
+canvas {
       display: block;
       margin: 0 auto;
       border: 1px solid #000;
+      margin-top: 80px;
+      /* flex: 1; */
     }
-    .controls {
+    /* .controls {
       display: flex;
       justify-content: center;
       flex-wrap: wrap;
       margin-bottom: 1rem;
-    }
-    .controls > * {
+    } */
+    .controls {
+      display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #2e2e2e;
+  padding: 10px;
+  color: white;
+  font-size: 1.2em;
+}
+.controls > * {
       margin: 0.5rem;
     }
+/* .navbar {
+  background-color: #212121;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 80px;
+} */
+
+.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  background-color: #212121;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-brand {
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+
+button, select {
+  font-size: 1rem;
+  background-color: #444444;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 10px;
+  margin: 0 5px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+button:hover, select:hover {
+  background-color: #555555;
+}
+
+button:active, select:active {
+  background-color: #777777;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32"><path d="M6 10l10 10L26 10" stroke="%23fff" stroke-width="5" fill="none" /></svg>');
+  background-position: right 10px center;
+  background-repeat: no-repeat;
+}
+
+select:focus {
+  outline: none;
+}
+
   </style>
 </head>
 <body>
-  <div class="controls">
-    <button id="start">Set Start</button>
-    <button id="end">Set End</button>
-    <button id="wall">Place Walls</button>
-    <button id="run">Run Algorithm</button>
-    <button id="stop">Stop</button>
-    <button id="clear">Clear Board</button>
-    <button id="clear-walls">Clear Walls</button>
-    <button id="clear-path">Clear Path</button>
-    <select id="algorithm">
-      <option value="dfs">Depth First Search</option>
-      <option value="bfs">Breadth First Search</option>
-      <option value="dijkstra">Dijkstra's Algorithm</option>
-    </select>
-    <select id="maze">
-      <option value="blank">Blank</option>
-      <option value="random">Random Walls</option>
-      <option value="spiral">Spiral Maze</option>
-      <option value="binary-tree">Binary Tree Maze</option>
-      <option value="eller">Eller's Maze</option>
-      <option value="kruskal">Kruskal's Maze</option>
-    </select>
-    <select id="speed">
-      <option value="fast">Fast</option>
-      <option value="medium">Medium</option>
-      <option value="slow">Slow</option>
-    </select>
-  </div>
+<div class = "container">
+  <div class="navbar">
+  <div class="navbar-brand">Visualization Tool</div>
+  <button id="start">Set Start</button>
+  <button id="end">Set End</button>
+  <button id="wall">Place Walls</button>
+  <button id="run">Run Algorithm</button>
+  <button id="stop">Stop</button>
+  <button id="clear">Clear Board</button>
+  <button id="clear-walls">Clear Walls</button>
+  <button id="clear-path">Clear Path</button>
+  <select id="algorithm">
+    <option value="dfs">Depth First Search</option>
+    <option value="bfs">Breadth First Search</option>
+    <option value="dijkstra">Dijkstra's Algorithm</option>
+    <option value="greedy">Greedy Algorithm</option>
+  </select>
+  <select id="maze">
+    <option value="blank">Blank</option>
+    <option value="random">Random Walls</option>
+    <option value="spiral">Spiral Maze</option>
+    <option value="binary-tree">Binary Tree Maze</option>
+    <option value="eller">Eller's Maze</option>
+    <option value="kruskal">Kruskal's Maze</option>
+  </select>
+  <select id="speed">
+    <option value="fast">Fast</option>
+    <option value="medium">Medium</option>
+    <option value="slow">Slow</option>
+  </select>
+</div>
+
   <canvas id="canvas" width="800" height="600"></canvas>
    <script src="./canvas.js"></script>
+</div>
+   
+
+<div id="popup">
+  <div id="popup-content">
+    <h2 id="popup-title"></h2>
+    <p id="popup-text"></p>
+    <button id="popup-previous">Previous</button>
+    <button id="popup-next">Next</button>
+    <button id="close-button">Close</button>
+  </div>
+</div>
+
+<div class="analytics">Time: <span id="time"></span>ms | Comparisons: <span id="comparisons"></span> | Memory: <span id="memory"></span>KB</div>
+
+
 </body>
 </html>
 

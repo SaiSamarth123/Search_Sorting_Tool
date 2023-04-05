@@ -10,6 +10,12 @@ let mode = "start";
 let startPoint = null;
 let endPoint = null;
 let isRunning = false;
+const directions = [
+  { dx: -1, dy: 0 }, // left
+  { dx: 1, dy: 0 },  // right
+  { dx: 0, dy: -1 }, // up
+  { dx: 0, dy: 1 }   // down
+];
 function drawGrid() {
   const canvasWidth = 800;
   const canvasHeight = 600;
@@ -39,18 +45,33 @@ function drawGrid() {
   }
 }
 
+setStart(5, 7);
+setEnd(20, 5);
+
+let startTime, endTime;
+let comparisons = 0;
+
 async function dfs(x, y) {
-  isRunning = true;
+  startTime = performance.now();
   if (
     !isValid(x, y) ||
     grid[x][y] === 1 ||
     grid[x][y] === 4 ||
-    grid[x][y] === 5
+    grid[x][y] === 5 
   ) {
     isRunning = false;
     return false;
   }
   if (x === endPoint.x && y === endPoint.y) {
+          // Set end time
+    endTime = performance.now();
+
+      // Display analytics
+      const time = endTime - startTime;
+      const memory = performance.memory.usedJSHeapSize / 1024;
+      document.getElementById("time").innerText = time.toFixed(2);
+      document.getElementById("comparisons").innerText = comparisons;
+      document.getElementById("memory").innerText = memory.toFixed(2);
     isRunning = false;
     return true;
   }
@@ -59,7 +80,8 @@ async function dfs(x, y) {
   const speed = document.getElementById("speed").value;
   const delay = speed === "fast" ? 50 : speed === "medium" ? 200 : 500;
   await new Promise((resolve) => setTimeout(resolve, delay));
-
+  if (isRunning) {
+     comparisons++;
   if (
     (await dfs(x + 1, y)) ||
     (await dfs(x - 1, y)) ||
@@ -71,13 +93,15 @@ async function dfs(x, y) {
     isRunning = false;
     return true;
   }
-  grid[x][y] = 0;
-  drawGrid();
+}
+  // grid[x][y] = 0;
+  // drawGrid();
   isRunning = false;
   return false;
 }
 
 async function bfs(x, y) {
+  startTime = performance.now();
   isRunning = true;
   const queue = [{ x, y }];
   const visited = new Set();
@@ -92,6 +116,7 @@ async function bfs(x, y) {
       continue;
     }
     visited.add(`${x},${y}`);
+    comparisons++;
     if (startPoint.x === x && startPoint.y === y) {
        grid[x][y] = 3;
     } else if (endPoint.x === x && endPoint.y === y){
@@ -108,6 +133,13 @@ async function bfs(x, y) {
         drawGrid();  
         current = parent.get(current);
       }
+      endTime = performance.now();
+       // Display analytics
+      const time = endTime - startTime;
+      const memory = performance.memory.usedJSHeapSize / 1024;
+      document.getElementById("time").innerText = time.toFixed(2);
+      document.getElementById("comparisons").innerText = comparisons;
+      document.getElementById("memory").innerText = memory.toFixed(2);
       isRunning = false;
       return true;
     }
@@ -134,6 +166,7 @@ async function bfs(x, y) {
 
 
 async function dijkstra(x, y) {
+  startTime = performance.now();
   isRunning = true;
   const distances = new Array(gridWidth)
     .fill(null)
@@ -153,8 +186,16 @@ async function dijkstra(x, y) {
       continue;
     }
     visited.add(`${x},${y}`);
+    comparisons++;
     if (x === endPoint.x && y === endPoint.y) {
       await drawPath(distances);
+      endTime = performance.now();
+       // Display analytics
+      const time = endTime - startTime;
+      const memory = performance.memory.usedJSHeapSize / 1024;
+      document.getElementById("time").innerText = time.toFixed(2);
+      document.getElementById("comparisons").innerText = comparisons;
+      document.getElementById("memory").innerText = memory.toFixed(2);
       isRunning = false;
       return true;
     }
@@ -190,6 +231,107 @@ async function dijkstra(x, y) {
   isRunning = false;
   return false;
 }
+class PriorityQueue {
+  constructor() {
+    this.elements = [];
+  }
+
+  isEmpty() {
+    return this.elements.length === 0;
+  }
+
+  enqueue(item) {
+    this.elements.push(item);
+    this.elements.sort((a, b) => a.priority - b.priority);
+  }
+
+  dequeue() {
+    return this.elements.shift();
+  }
+}
+
+function heuristic(x1, y1, x2, y2) {
+  return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function greedy(startX, startY) {
+  startTime = performance.now();
+  const queue = new PriorityQueue();
+  queue.enqueue({x: startX, y: startY, priority: 0});
+  const cameFrom = new Map();
+  cameFrom.set(`${startX},${startY}`, null);
+  const costSoFar = new Map();
+  costSoFar.set(`${startX},${startY}`, 0);
+  let isPathFound = false;
+  let counter = 0;
+
+  while (!queue.isEmpty()) {
+    const current = queue.dequeue();
+    const { x, y } = current;
+
+    if (grid[x][y] !== 2 || grid[x][y]!== 1 || grid[x][y] !== 3) {
+      comparisons++;
+      grid[x][y] = 5; // mark as visited (yellow)
+      drawGrid();
+    }
+
+    if (x === endPoint.x && y === endPoint.y) {
+      isPathFound = true;
+      break;
+    }
+
+    for (const { dx, dy } of directions) {
+      const nextX = x + dx;
+      const nextY = y + dy;
+
+      if (nextX < 0 || nextX >= gridWidth || nextY < 0 || nextY >= gridHeight) {
+        continue;
+      }
+
+      if (grid[nextX][nextY] === 1) {
+        continue;
+      }
+
+      const priority = heuristic(nextX, nextY, endPoint.x, endPoint.y);
+      const newCost = costSoFar.get(`${x},${y}`) + 1;
+
+      if (!costSoFar.has(`${nextX},${nextY}`) || newCost < costSoFar.get(`${nextX},${nextY}`)) {
+        costSoFar.set(`${nextX},${nextY}`, newCost);
+        queue.enqueue({x: nextX, y: nextY, priority});
+        cameFrom.set(`${nextX},${nextY}`, {x, y});
+      }
+    }
+    counter++;
+    await sleep(5); // add delay for visualization
+  }
+
+  if (isPathFound) {
+    let current = { x: endPoint.x, y: endPoint.y };
+    while (current.x !== startX || current.y !== startY) {
+      current = cameFrom.get(`${current.x},${current.y}`);
+      grid[current.x][current.y] = 4; // mark as part of the path (blue)
+      drawGrid();
+      await sleep(20); // add delay for visualization
+    }
+    grid[startX][startY] = 3; // mark as start point
+    grid[endPoint.x][endPoint.y] = 3; // mark as end point
+    drawGrid();
+  } else {
+    console.log("No path found");
+  }
+  endTime = performance.now();
+       // Display analytics
+  const time = endTime - startTime;
+  const memory = performance.memory.usedJSHeapSize / 1024;
+  document.getElementById("time").innerText = time.toFixed(2);
+  document.getElementById("comparisons").innerText = comparisons;
+  document.getElementById("memory").innerText = memory.toFixed(2);
+}
+
 
 async function drawPath(distances) {
   let x = endPoint.x;
@@ -246,6 +388,17 @@ function setWall(x, y) {
   }
 }
 
+function emptyGrid() {
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
+      if ((startPoint === null || endPoint === null) || (startPoint.x != x && startPoint.y != y && endPoint.x != x && endPoint.y != y)) {
+        grid[x][y] = 0;
+      }
+    }
+  }
+  drawGrid(); // redraw the grid to update the canvas
+}
+
 function generateRandomMaze() {
   for (let x = 0; x < gridWidth; x++) {
     for (let y = 0; y < gridHeight; y++) {
@@ -270,14 +423,19 @@ function handleMazeChange() {
   if (selectedMaze === "random") {
     generateRandomMaze();
   } else if (selectedMaze === "blank") {
+    emptyGrid();
     grid.fill(0);
   } else if (selectedMaze === "eller") {
+    emptyGrid();
     generateEllerMaze();
   } else if (selectedMaze === "kruskal") {
+    emptyGrid();
     generateKruskalMaze();
   } else if (selectedMaze === "binary-tree") {
+    emptyGrid();
     generateBinaryTreeMaze();
   } else if (selectedMaze === "spiral") {
+    emptyGrid();
     generateSpiralMaze();
   }
   drawGrid();
@@ -401,6 +559,8 @@ function generateEllerMaze() {
   drawGrid();
 }
 
+
+
 function generateKruskalMaze() {
   const edges = [];
   for (let x = 0; x < gridWidth; x++) {
@@ -414,12 +574,24 @@ function generateKruskalMaze() {
     }
   }
   edges.sort(() => Math.random() - 0.5);
-  const uf = new UnionFind(gridWidth * gridHeight);
+  const sets = new Array(gridWidth).fill().map(() => new Array(gridHeight).fill(0));
+  let setCount = 0;
+  for (let x = 0; x < gridWidth; x++) {
+    for (let y = 0; y < gridHeight; y++) {
+      sets[x][y] = setCount++;
+    }
+  }
   for (const { x1, y1, x2, y2 } of edges) {
-    const id1 = y1 * gridWidth + x1;
-    const id2 = y2 * gridWidth + x2;
-    if (uf.find(id1) !== uf.find(id2)) {
-      uf.union(id1, id2);
+    const setId1 = sets[x1][y1];
+    const setId2 = sets[x2][y2];
+    if (setId1 !== setId2) {
+      for (let x = 0; x < gridWidth; x++) {
+        for (let y = 0; y < gridHeight; y++) {
+          if (sets[x][y] === setId2) {
+            sets[x][y] = setId1;
+          }
+        }
+      }
       setWall(x1, y1);
       setWall(x2, y2);
     }
@@ -433,35 +605,12 @@ function generateKruskalMaze() {
   drawGrid();
 }
 
-function handleMazeChange() {
-  const mazeSelect = document.getElementById("maze");
-  const selectedMaze = mazeSelect.value;
-  if (selectedMaze === "random") {
-    generateRandomMaze();
-  } else if (selectedMaze === "blank") {
-    grid.fill(0);
-  } else if (selectedMaze === "spiral") {
-    generateSpiralMaze();
-  } else if (selectedMaze === "binary-tree") {
-    generateBinaryTreeMaze();
-  } else if (selectedMaze === "eller") {
-    generateEllerMaze();
-  } else if (selectedMaze === "kruskal") {
-    generateKruskalMaze();
-  }
-}
 
 function clearBoard() {
   for (let x = 0; x < gridWidth; x++) {
     for (let y = 0; y < gridHeight; y++) {
       grid[x][y] = 0;
     }
-  }
-  if (startPoint) {
-    setStart(startPoint.x, startPoint.y);
-  }
-  if (endPoint) {
-    setEnd(endPoint.x, endPoint.y);
   }
   drawGrid();
 }
@@ -481,7 +630,11 @@ function clearPath() {
   for (let x = 0; x < gridWidth; x++) {
     for (let y = 0; y < gridHeight; y++) {
       if (grid[x][y] === 4 || grid[x][y] === 5) {
+        if(endPoint.x === x && endPoint.y === y) {
+          grid[x][y] = 2;
+        } else {
         grid[x][y] = 0;
+        }
       }
     }
   }
@@ -491,6 +644,93 @@ function clearPath() {
 function stop() {
   isRunning = false;
 }
+
+const popupContent = [
+  {
+    title: "Welcome!",
+    text: "This is a brief overview of how to use the website.",
+  },
+  {
+    title: "Step 1",
+    text: "First, click on the 'Generate Maze' button to create a maze.",
+  },
+  {
+    title: "Step 2",
+    text: "Choose an algorithm from the dropdown menu and click on the 'Run Algorithm' button.",
+  },
+  {
+    title: "Step 3",
+    text: "To change the speed of the algorithm, select a different option from the 'Speed' dropdown menu.",
+  },
+  {
+    title: "Step 4",
+    text: "You can also draw walls on the grid by clicking and dragging your mouse.",
+  },
+  {
+    title: "Done!",
+    text: "You're now ready to explore the maze and experiment with different algorithms!",
+  },
+  {
+    title: "Select Algorithm",
+    text: "Choose an algorithm from the dropdown menu and click on the 'Run Algorithm' button.",
+  },
+];
+
+let currentPage = 0;
+// Show the tutorial popup when the page loads
+window.addEventListener("load", () => {
+  const popup = document.getElementById("popup");
+  const closeButton = document.getElementById("close-button");
+
+  function hidePopup() {
+    popup.style.display = "none";
+  }
+
+ function showPopup() {
+  const popup = document.getElementById("popup");
+  const popupTitle = document.getElementById("popup-title");
+  const popupText = document.getElementById("popup-text");
+  popup.style.display = "block";
+  popupTitle.innerText = popupContent[currentPage].title;
+  popupText.innerText = popupContent[currentPage].text;
+}
+
+
+function previousPage() {
+  if (currentPage > 0) {
+    currentPage--;
+    showPopup();
+  }
+}
+
+function nextPage() {
+  if (currentPage < popupContent.length - 2) {
+    currentPage++;
+    showPopup();
+  }
+}
+
+  function handlePreviousClick() {
+    previousPage();
+    //console.log("Previous button clicked");
+  }
+
+  function handleNextClick() {
+    nextPage();
+    //console.log("Next button clicked");
+  }
+
+  // Add event listeners to the buttons
+  closeButton.addEventListener("click", hidePopup);
+  document.getElementById("popup-previous").addEventListener("click", handlePreviousClick);
+  document.getElementById("popup-next").addEventListener("click", handleNextClick);
+
+  // Show the popup
+  showPopup();
+});
+
+
+
 
 document.getElementById("start").addEventListener("click", () => {
   mode = "start";
@@ -504,15 +744,22 @@ document.getElementById("wall").addEventListener("click", () => {
   mode = "wall";
 });
 
+let selectedAlgorithm = null;
 const algorithmDropdown = document.getElementById("algorithm");
 algorithmDropdown.addEventListener("change", () => {
   selectedAlgorithm = algorithmDropdown.value;
+  if (selectedAlgorithm === null){
+    currentPage = 6;
+    showPopup();
+}
 });
 
 document.getElementById("run").addEventListener("click", () => {
-  if (startPoint && endPoint) {
+  if(selectedAlgorithm != null) {
+    if (startPoint && endPoint && selectedAlgorithm) {
     switch (selectedAlgorithm) {
       case "dfs":
+        isRunning = true;
         dfs(startPoint.x, startPoint.y);
         break;
       case "bfs":
@@ -521,12 +768,20 @@ document.getElementById("run").addEventListener("click", () => {
       case "dijkstra":
         dijkstra(startPoint.x, startPoint.y);
         break;
+      case "greedy":
+        greedy(startPoint.x, startPoint.y);
+        break;
       default:
         console.error(`Unknown algorithm: ${selectedAlgorithm}`);
         break;
     }
+  } else {
+    currentPage = 6;
+    showPopup();
   }
+}
 });
+
 
 document.getElementById("clear").addEventListener("click", clearBoard);
 document.getElementById("clear-walls").addEventListener("click", clearWalls);
@@ -551,5 +806,48 @@ canvas.addEventListener("click", (e) => {
   }
   drawGrid();
 });
+
+let isDraggingStart = false;
+let isDraggingEnd = false;
+
+canvas.addEventListener("mousedown", (event) => {
+  const x = Math.floor(event.offsetX / gridSize);
+  const y = Math.floor(event.offsetY / gridSize);
+  if (x === startPoint.x && y === startPoint.y) {
+    isDraggingStart = true;
+  } else if (x === endPoint.x && y === endPoint.y) {
+    isDraggingEnd = true;
+  }
+});
+
+function isWall(x, y) {
+  return grid[x][y] === 1;
+}
+
+canvas.addEventListener("mousemove", (event) => {
+  if (isDraggingStart) {
+    const x = Math.floor(event.offsetX / gridSize);
+    const y = Math.floor(event.offsetY / gridSize);
+    if (isValid(x, y) && !isWall(x, y) && (x !== endPoint.x || y !== endPoint.y)) {
+      startPoint.x = x;
+      startPoint.y = y;
+      drawGrid();
+    }
+  } else if (isDraggingEnd) {
+    const x = Math.floor(event.offsetX / gridSize);
+    const y = Math.floor(event.offsetY / gridSize);
+    if (isValid(x, y) && !isWall(x, y) && (x !== startPoint.x || y !== startPoint.y)) {
+      endPoint.x = x;
+      endPoint.y = y;
+      drawGrid();
+    }
+  }
+});
+
+canvas.addEventListener("mouseup", () => {
+  isDraggingStart = false;
+  isDraggingEnd = false;
+});
+
 
 drawGrid();
