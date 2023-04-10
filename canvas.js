@@ -12,9 +12,9 @@ let endPoint = null;
 let isRunning = false;
 const directions = [
   { dx: -1, dy: 0 }, // left
-  { dx: 1, dy: 0 },  // right
+  { dx: 1, dy: 0 }, // right
   { dx: 0, dy: -1 }, // up
-  { dx: 0, dy: 1 }   // down
+  { dx: 0, dy: 1 }, // down
 ];
 function drawGrid() {
   const canvasWidth = 800;
@@ -51,55 +51,109 @@ setEnd(20, 5);
 let startTime, endTime;
 let comparisons = 0;
 
-async function dfs(x, y) {
+// DFS search
+async function dfs(x, y, visited = new Set()) {
+  path = [];
   startTime = performance.now();
-  if (
-    !isValid(x, y) ||
-    grid[x][y] === 1 ||
-    grid[x][y] === 4 ||
-    grid[x][y] === 5 
-  ) {
-    isRunning = false;
+  if (!isValid(x, y) || visited.has(`${x},${y}`)) {
     return false;
   }
   if (x === endPoint.x && y === endPoint.y) {
-          // Set end time
+    // Set end time
     endTime = performance.now();
 
-      // Display analytics
-      const time = endTime - startTime;
-      const memory = performance.memory.usedJSHeapSize / 1024;
-      document.getElementById("time").innerText = time.toFixed(2);
-      document.getElementById("comparisons").innerText = comparisons;
-      document.getElementById("memory").innerText = memory.toFixed(2);
+    // Display analytics
+    const time = endTime - startTime;
+    const memory = performance.memory.usedJSHeapSize / 1024;
+    document.getElementById("time").innerText = time.toFixed(2);
+    document.getElementById("comparisons").innerText = comparisons;
+    document.getElementById("memory").innerText = memory.toFixed(2);
     isRunning = false;
     return true;
   }
+  visited.add(`${x},${y}`);
+  path.push({ x, y });
   grid[x][y] = 5;
   drawGrid();
   const speed = document.getElementById("speed").value;
   const delay = speed === "fast" ? 50 : speed === "medium" ? 200 : 500;
   await new Promise((resolve) => setTimeout(resolve, delay));
   if (isRunning) {
-     comparisons++;
-  if (
-    (await dfs(x + 1, y)) ||
-    (await dfs(x - 1, y)) ||
-    (await dfs(x, y + 1)) ||
-    (await dfs(x, y - 1))
-  ) {
-    grid[x][y] = 4;
-    drawGrid();
-    isRunning = false;
-    return true;
+    comparisons++;
+    if (
+      (await dfs(x + 1, y, visited, path)) ||
+      (await dfs(x - 1, y, visited, path)) ||
+      (await dfs(x, y + 1, visited, path)) ||
+      (await dfs(x, y - 1, visited, path))
+    ) {
+      grid[x][y] = 4;
+      path.push({ x, y });
+      for (const cell of path) {
+        grid[cell.x][cell.y] = 4;
+      }
+      setTimeout(() => {
+        drawGrid();
+      }, delay);
+      isRunning = false;
+      return true;
+    }
   }
-}
-  // grid[x][y] = 0;
-  // drawGrid();
+  visited.delete(`${x},${y}`);
+  path.pop();
   isRunning = false;
   return false;
 }
 
+// async function dfs(x, y) {
+//   startTime = performance.now();
+//   if (
+//     !isValid(x, y) ||
+//     grid[x][y] === 1 ||
+//     grid[x][y] === 4 ||
+//     grid[x][y] === 5
+//   ) {
+//     isRunning = false;
+//     return false;
+//   }
+//   if (x === endPoint.x && y === endPoint.y) {
+//     // Set end time
+//     endTime = performance.now();
+
+//     // Display analytics
+//     const time = endTime - startTime;
+//     const memory = performance.memory.usedJSHeapSize / 1024;
+//     document.getElementById("time").innerText = time.toFixed(2);
+//     document.getElementById("comparisons").innerText = comparisons;
+//     document.getElementById("memory").innerText = memory.toFixed(2);
+//     isRunning = false;
+//     return true;
+//   }
+//   grid[x][y] = 5;
+//   drawGrid();
+//   const speed = document.getElementById("speed").value;
+//   const delay = speed === "fast" ? 50 : speed === "medium" ? 200 : 500;
+//   await new Promise((resolve) => setTimeout(resolve, delay));
+//   if (isRunning) {
+//     comparisons++;
+//     if (
+//       (await dfs(x + 1, y)) ||
+//       (await dfs(x - 1, y)) ||
+//       (await dfs(x, y + 1)) ||
+//       (await dfs(x, y - 1))
+//     ) {
+//       grid[x][y] = 4;
+//       drawGrid();
+//       isRunning = false;
+//       return true;
+//     }
+//   }
+//   // grid[x][y] = 0;
+//   // drawGrid();
+//   isRunning = false;
+//   return false;
+// }
+
+// BFS
 async function bfs(x, y) {
   startTime = performance.now();
   isRunning = true;
@@ -108,18 +162,14 @@ async function bfs(x, y) {
   const parent = new Map();
   while (queue.length > 0 && isRunning) {
     const { x, y } = queue.shift();
-    if (
-      !isValid(x, y) ||
-      grid[x][y] === 1 ||
-      visited.has(`${x},${y}`)
-    ) {
+    if (!isValid(x, y) || grid[x][y] === 1 || visited.has(`${x},${y}`)) {
       continue;
     }
     visited.add(`${x},${y}`);
     comparisons++;
     if (startPoint.x === x && startPoint.y === y) {
-       grid[x][y] = 3;
-    } else if (endPoint.x === x && endPoint.y === y){
+      grid[x][y] = 3;
+    } else if (endPoint.x === x && endPoint.y === y) {
       grid[x][y] = 2;
     } else {
       grid[x][y] = 5;
@@ -130,11 +180,11 @@ async function bfs(x, y) {
       while (parent.has(current)) {
         const [x, y] = current.split(",").map(Number);
         grid[x][y] = 4;
-        drawGrid();  
+        drawGrid();
         current = parent.get(current);
       }
       endTime = performance.now();
-       // Display analytics
+      // Display analytics
       const time = endTime - startTime;
       const memory = performance.memory.usedJSHeapSize / 1024;
       document.getElementById("time").innerText = time.toFixed(2);
@@ -147,7 +197,7 @@ async function bfs(x, y) {
       { x: x + 1, y },
       { x: x - 1, y },
       { x, y: y + 1 },
-      { x, y: y - 1 }
+      { x, y: y - 1 },
     ];
     for (const neighbor of neighbors) {
       const key = `${neighbor.x},${neighbor.y}`;
@@ -163,7 +213,6 @@ async function bfs(x, y) {
   isRunning = false;
   return false;
 }
-
 
 async function dijkstra(x, y) {
   startTime = performance.now();
@@ -190,7 +239,7 @@ async function dijkstra(x, y) {
     if (x === endPoint.x && y === endPoint.y) {
       await drawPath(distances);
       endTime = performance.now();
-       // Display analytics
+      // Display analytics
       const time = endTime - startTime;
       const memory = performance.memory.usedJSHeapSize / 1024;
       document.getElementById("time").innerText = time.toFixed(2);
@@ -207,22 +256,38 @@ async function dijkstra(x, y) {
     const speed = document.getElementById("speed").value;
     const delay = speed === "fast" ? 50 : speed === "medium" ? 200 : 500;
     await new Promise((resolve) => setTimeout(resolve, delay));
+
+    // Finds the shortest path between start and end point using visited nodes
     const cost = distances[x][y] + 1;
-    if (cost < distances[x + 1][y]) {
+    if (
+      isValid(x + 1, y) &&
+      grid[x + 1][y] !== 1 &&
+      cost < distances[x + 1][y]
+    ) {
       distances[x + 1][y] = cost;
       queue.push({ x: x + 1, y });
     }
-    if (distances[x + 1] !== undefined && cost < distances[x + 1][y]) {
-      if (cost < distances[x - 1][y]) {
-        distances[x - 1][y] = cost;
-        queue.push({ x: x - 1, y });
-      }
+    if (
+      isValid(x - 1, y) &&
+      grid[x - 1][y] !== 1 &&
+      cost < distances[x - 1][y]
+    ) {
+      distances[x - 1][y] = cost;
+      queue.push({ x: x - 1, y });
     }
-    if (cost < distances[x][y + 1]) {
+    if (
+      isValid(x, y + 1) &&
+      grid[x][y + 1] !== 1 &&
+      cost < distances[x][y + 1]
+    ) {
       distances[x][y + 1] = cost;
       queue.push({ x, y: y + 1 });
     }
-    if (cost < distances[x][y - 1]) {
+    if (
+      isValid(x, y - 1) &&
+      grid[x][y - 1] !== 1 &&
+      cost < distances[x][y - 1]
+    ) {
       distances[x][y - 1] = cost;
       queue.push({ x, y: y - 1 });
     }
@@ -255,13 +320,13 @@ function heuristic(x1, y1, x2, y2) {
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function greedy(startX, startY) {
   startTime = performance.now();
   const queue = new PriorityQueue();
-  queue.enqueue({x: startX, y: startY, priority: 0});
+  queue.enqueue({ x: startX, y: startY, priority: 0 });
   const cameFrom = new Map();
   cameFrom.set(`${startX},${startY}`, null);
   const costSoFar = new Map();
@@ -273,7 +338,7 @@ async function greedy(startX, startY) {
     const current = queue.dequeue();
     const { x, y } = current;
 
-    if (grid[x][y] !== 2 || grid[x][y]!== 1 || grid[x][y] !== 3) {
+    if (grid[x][y] !== 2 || grid[x][y] !== 1 || grid[x][y] !== 3) {
       comparisons++;
       grid[x][y] = 5; // mark as visited (yellow)
       drawGrid();
@@ -299,10 +364,13 @@ async function greedy(startX, startY) {
       const priority = heuristic(nextX, nextY, endPoint.x, endPoint.y);
       const newCost = costSoFar.get(`${x},${y}`) + 1;
 
-      if (!costSoFar.has(`${nextX},${nextY}`) || newCost < costSoFar.get(`${nextX},${nextY}`)) {
+      if (
+        !costSoFar.has(`${nextX},${nextY}`) ||
+        newCost < costSoFar.get(`${nextX},${nextY}`)
+      ) {
         costSoFar.set(`${nextX},${nextY}`, newCost);
-        queue.enqueue({x: nextX, y: nextY, priority});
-        cameFrom.set(`${nextX},${nextY}`, {x, y});
+        queue.enqueue({ x: nextX, y: nextY, priority });
+        cameFrom.set(`${nextX},${nextY}`, { x, y });
       }
     }
     counter++;
@@ -324,14 +392,13 @@ async function greedy(startX, startY) {
     console.log("No path found");
   }
   endTime = performance.now();
-       // Display analytics
+  // Display analytics
   const time = endTime - startTime;
   const memory = performance.memory.usedJSHeapSize / 1024;
   document.getElementById("time").innerText = time.toFixed(2);
   document.getElementById("comparisons").innerText = comparisons;
   document.getElementById("memory").innerText = memory.toFixed(2);
 }
-
 
 async function drawPath(distances) {
   let x = endPoint.x;
@@ -356,9 +423,6 @@ async function drawPath(distances) {
   }
   drawGrid();
 }
-
-
-
 
 function isValid(x, y) {
   return x >= 0 && x < gridWidth && y >= 0 && y < gridHeight;
@@ -391,7 +455,14 @@ function setWall(x, y) {
 function emptyGrid() {
   for (let x = 0; x < gridWidth; x++) {
     for (let y = 0; y < gridHeight; y++) {
-      if ((startPoint === null || endPoint === null) || (startPoint.x != x && startPoint.y != y && endPoint.x != x && endPoint.y != y)) {
+      if (
+        startPoint === null ||
+        endPoint === null ||
+        (startPoint.x != x &&
+          startPoint.y != y &&
+          endPoint.x != x &&
+          endPoint.y != y)
+      ) {
         grid[x][y] = 0;
       }
     }
@@ -559,8 +630,6 @@ function generateEllerMaze() {
   drawGrid();
 }
 
-
-
 function generateKruskalMaze() {
   const edges = [];
   for (let x = 0; x < gridWidth; x++) {
@@ -574,7 +643,9 @@ function generateKruskalMaze() {
     }
   }
   edges.sort(() => Math.random() - 0.5);
-  const sets = new Array(gridWidth).fill().map(() => new Array(gridHeight).fill(0));
+  const sets = new Array(gridWidth)
+    .fill()
+    .map(() => new Array(gridHeight).fill(0));
   let setCount = 0;
   for (let x = 0; x < gridWidth; x++) {
     for (let y = 0; y < gridHeight; y++) {
@@ -605,7 +676,6 @@ function generateKruskalMaze() {
   drawGrid();
 }
 
-
 function clearBoard() {
   for (let x = 0; x < gridWidth; x++) {
     for (let y = 0; y < gridHeight; y++) {
@@ -630,10 +700,12 @@ function clearPath() {
   for (let x = 0; x < gridWidth; x++) {
     for (let y = 0; y < gridHeight; y++) {
       if (grid[x][y] === 4 || grid[x][y] === 5) {
-        if(endPoint.x === x && endPoint.y === y) {
+        if (endPoint.x === x && endPoint.y === y) {
           grid[x][y] = 2;
+        } else if (startPoint.x === x && startPoint.y === y) {
+          grid[x][y] = 3;
         } else {
-        grid[x][y] = 0;
+          grid[x][y] = 0;
         }
       }
     }
@@ -686,29 +758,28 @@ window.addEventListener("load", () => {
     popup.style.display = "none";
   }
 
- function showPopup() {
-  const popup = document.getElementById("popup");
-  const popupTitle = document.getElementById("popup-title");
-  const popupText = document.getElementById("popup-text");
-  popup.style.display = "block";
-  popupTitle.innerText = popupContent[currentPage].title;
-  popupText.innerText = popupContent[currentPage].text;
-}
-
-
-function previousPage() {
-  if (currentPage > 0) {
-    currentPage--;
-    showPopup();
+  function showPopup() {
+    const popup = document.getElementById("popup");
+    const popupTitle = document.getElementById("popup-title");
+    const popupText = document.getElementById("popup-text");
+    popup.style.display = "block";
+    popupTitle.innerText = popupContent[currentPage].title;
+    popupText.innerText = popupContent[currentPage].text;
   }
-}
 
-function nextPage() {
-  if (currentPage < popupContent.length - 2) {
-    currentPage++;
-    showPopup();
+  function previousPage() {
+    if (currentPage > 0) {
+      currentPage--;
+      showPopup();
+    }
   }
-}
+
+  function nextPage() {
+    if (currentPage < popupContent.length - 2) {
+      currentPage++;
+      showPopup();
+    }
+  }
 
   function handlePreviousClick() {
     previousPage();
@@ -722,15 +793,16 @@ function nextPage() {
 
   // Add event listeners to the buttons
   closeButton.addEventListener("click", hidePopup);
-  document.getElementById("popup-previous").addEventListener("click", handlePreviousClick);
-  document.getElementById("popup-next").addEventListener("click", handleNextClick);
+  document
+    .getElementById("popup-previous")
+    .addEventListener("click", handlePreviousClick);
+  document
+    .getElementById("popup-next")
+    .addEventListener("click", handleNextClick);
 
   // Show the popup
   showPopup();
 });
-
-
-
 
 document.getElementById("start").addEventListener("click", () => {
   mode = "start";
@@ -748,40 +820,39 @@ let selectedAlgorithm = null;
 const algorithmDropdown = document.getElementById("algorithm");
 algorithmDropdown.addEventListener("change", () => {
   selectedAlgorithm = algorithmDropdown.value;
-  if (selectedAlgorithm === null){
-    currentPage = 6;
-    showPopup();
-}
-});
-
-document.getElementById("run").addEventListener("click", () => {
-  if(selectedAlgorithm != null) {
-    if (startPoint && endPoint && selectedAlgorithm) {
-    switch (selectedAlgorithm) {
-      case "dfs":
-        isRunning = true;
-        dfs(startPoint.x, startPoint.y);
-        break;
-      case "bfs":
-        bfs(startPoint.x, startPoint.y);
-        break;
-      case "dijkstra":
-        dijkstra(startPoint.x, startPoint.y);
-        break;
-      case "greedy":
-        greedy(startPoint.x, startPoint.y);
-        break;
-      default:
-        console.error(`Unknown algorithm: ${selectedAlgorithm}`);
-        break;
-    }
-  } else {
+  if (selectedAlgorithm === null) {
     currentPage = 6;
     showPopup();
   }
-}
 });
 
+document.getElementById("run").addEventListener("click", () => {
+  if (selectedAlgorithm != null) {
+    if (startPoint && endPoint && selectedAlgorithm) {
+      switch (selectedAlgorithm) {
+        case "dfs":
+          isRunning = true;
+          dfs(startPoint.x, startPoint.y);
+          break;
+        case "bfs":
+          bfs(startPoint.x, startPoint.y);
+          break;
+        case "dijkstra":
+          dijkstra(startPoint.x, startPoint.y);
+          break;
+        case "greedy":
+          greedy(startPoint.x, startPoint.y);
+          break;
+        default:
+          console.error(`Unknown algorithm: ${selectedAlgorithm}`);
+          break;
+      }
+    } else {
+      currentPage = 6;
+      showPopup();
+    }
+  }
+});
 
 document.getElementById("clear").addEventListener("click", clearBoard);
 document.getElementById("clear-walls").addEventListener("click", clearWalls);
@@ -828,7 +899,11 @@ canvas.addEventListener("mousemove", (event) => {
   if (isDraggingStart) {
     const x = Math.floor(event.offsetX / gridSize);
     const y = Math.floor(event.offsetY / gridSize);
-    if (isValid(x, y) && !isWall(x, y) && (x !== endPoint.x || y !== endPoint.y)) {
+    if (
+      isValid(x, y) &&
+      !isWall(x, y) &&
+      (x !== endPoint.x || y !== endPoint.y)
+    ) {
       startPoint.x = x;
       startPoint.y = y;
       drawGrid();
@@ -836,7 +911,11 @@ canvas.addEventListener("mousemove", (event) => {
   } else if (isDraggingEnd) {
     const x = Math.floor(event.offsetX / gridSize);
     const y = Math.floor(event.offsetY / gridSize);
-    if (isValid(x, y) && !isWall(x, y) && (x !== startPoint.x || y !== startPoint.y)) {
+    if (
+      isValid(x, y) &&
+      !isWall(x, y) &&
+      (x !== startPoint.x || y !== startPoint.y)
+    ) {
       endPoint.x = x;
       endPoint.y = y;
       drawGrid();
@@ -849,5 +928,9 @@ canvas.addEventListener("mouseup", () => {
   isDraggingEnd = false;
 });
 
-
 drawGrid();
+
+// Fixed the clear path option
+// Fixed path going through the wall.
+// Add animating by adding another color to visited cells.
+
